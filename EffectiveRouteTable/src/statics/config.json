@@ -1,0 +1,10 @@
+{
+    "log" : {
+        "path" : "C:\\powershell\\EffectiveRouteTable\\src\\statics\\logConfig.json"
+    },
+    "batch" : {
+        "value" : false,
+        "size" : 20
+    },
+    "csvGrouping" : "path"
+}

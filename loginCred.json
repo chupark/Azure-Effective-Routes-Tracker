@@ -1,0 +1,10 @@
+{
+    "accountBasic" : {
+        "subscription" : "814b80ef-928b-4f54-87c6-35df36270a65",
+        "tenant" : "785087ba-1e72-4e7d-b1d1-4a9639137a66"
+    },
+    "servicePrincipal" : {
+        "user" : "f96777d2-69e4-43ea-877a-284bdb4a3816",
+        "pass" : "92rU@U/2YiZFAbnIawhO9O[r?T6-[r3*"
+    }
+}
