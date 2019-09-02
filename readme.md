@@ -19,7 +19,7 @@ effectiveRoute = C:\powershell\Azure-Effective-Routes-Tracker\
 main.ps1 파일을 실행시킵니다.
 
 ### 작업 스캐줄 설정
-Windows의 경우 스케줄 작업
+Windows의 경우 스케줄 작업 <br>
 Linux에 PowerShell Core를 설치했을 경우 Cronjob을 추가 합니다.
 
 --- 나중에 더 추가 
