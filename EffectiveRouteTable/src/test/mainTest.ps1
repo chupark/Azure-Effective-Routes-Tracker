@@ -15,11 +15,18 @@ Connect-AzAccount -ServicePrincipal -Credential $cred -Tenant $loginConfig.accou
 makeLogFile -logType "log.runtime.general" -fileName "runtime.log" -logMsg ("Starting Script=============")
 try {
     ## Global Variables
-    $vms = Get-AzVM
-    $nics = Get-AzNetworkInterface
-    $nicVnetTable
+    $vmStatuses = $null
+    $vms = $null
     $resourceTable = $null
+    $nics = $null
+
+    $vmStatuses = Get-AzVM -Status
+    $vms = $vmStatuses | Where-Object {$_.PowerState -eq "VM running"}
+    $nics = Get-AzNetworkInterface
     $dt = Get-Date
+    ### for Test
+    # $dt = $dt.AddDays(1)
+    ###
     $hashFileDate = (Get-Date $dt -Format "yyyy-MM-dd HH:mm:ss")
     $todayFile = (Get-Date $dt -Format "yyyy-MM-dd HH_mm")
     $batchSize = $config.batch.size
@@ -27,8 +34,9 @@ try {
     ## File Names & Path
     $scriptPath = $env:effectiveRoute + "EffectiveRouteTable\src\utility\getCurrentEffectiveRoute.ps1"
     $csvFileName = $todayFile + "_route.csv"
-    $hashFileName = $env:effectiveRoute + "EffectiveRouteTable\outputs\hash\fileHash.csv"
-    $saveFilePath = $env:effectiveRoute + "EffectiveRouteTable\outputs\routeTable\"
+    $hashHome = $env:effectiveRoute + "EffectiveRouteTable\outputs\hash\"
+    $hashFileName = $env:effectiveRoute + "EffectiveRouteTable\outputs\hash\" + $todayFile  + "_fileHash.csv"
+    # $saveFilePath = $env:effectiveRoute + "EffectiveRouteTable\outputs\routeTable\"
     
     <#
     서브넷 별로 파일 떨구자.. 굿? ㅇㅋ 굿
@@ -50,17 +58,10 @@ try {
         if ($config.batch.value) {
             $jobCnt = [int](Get-job).Count % $batchSize
             if($jobCnt -eq 0) {
-                Get-Job | Wait-Job
+                $fornull = Get-Job | Wait-Job
             }
         }
     }
-    # 
-    # 테이블 만들어서 csv로 정리
-    # 파일 저장 시 Hash 값을 csv 파일에 같이 저장함, 이 때 항상 순서가 같아야 하므로 정렬이 필요함
-    # @@
-    # output : $out
-    # Type : Object[]
-    #
     makeLogFile -logType "log.runtime.general" -fileName "runtime.log" -logMsg ("All Job is Finished")
 
     ##
@@ -68,14 +69,24 @@ try {
     # Primary output
     #
     ## Making Final RouteTable
+    # 
+    # 테이블 만들어서 csv로 정리
+    # 파일 저장 시 Hash 값을 csv 파일에 같이 저장함, 이 때 항상 순서가 같아야 하므로 정렬이 필요함
+    # @@
+    # output : $out
+    # Type : Object[]
+    #
     makeLogFile -logType "log.runtime.general" -fileName "runtime.log" -logMsg ("Starting make RouteTable")
-    Get-Job | Wait-Job
+    $fornull = Get-Job | Wait-Job
     $out = Get-Job | Receive-Job -Keep | Select-Object * -ExcludeProperty RunspaceId, PSComputerName, PSShowComputerName |
            Sort-Object -Property nicName, Name, DisableBgpRoutePropagation, State, Source, AddressPrefix, NextHopType, NextHopIpAddress
+    
+    ## 디렉토리 위치를 네트워크 별로 나눔
     $pathGroup = $out.path | Select -Unique
 
     ## group by Something.... [subnet || nicName]
     $grp = $config.csvGrouping
+    ## 서브넷 별로 파일을 만들 것이냐, nic 이름별로 파일을 만들 것이냐.
     $csvGroup = $out.$grp | Select -Unique
 
     ## Making Directory Group by Vnet, Subnet
@@ -83,21 +94,32 @@ try {
         if (!(Test-Path $path)) {
             New-Item -ItemType Directory -Force -Path $path
         }
-    }
-
-    ## Grouping File Path
-    foreach ($gp in $pathGroup) {
-        $zzz = $out | Where-Object {$_.path -eq $gp}
-        foreach ($zz in $zzz) {
-            $realPath = $zz.path + "\" + $zz.nicName + $csvFileName
-            Write-Host $realPath
+        $diffPathRegex = $path -match "(?<pathHeader>.+)\\routeTable\\(?<pathFooter>.+)"
+        $diffPath = $Matches.pathHeader + "\diff\" + $Matches.pathFooter
+        if (!(Test-Path $diffPath)) {
+            New-Item -ItemType Directory -Force -Path $diffPath
         }
     }
 
-    $out | Select-Object * -ExcludeProperty RunspaceId, PSComputerName, PSShowComputerName |
-        Sort-Object -Property nicName, Name, DisableBgpRoutePropagation, State, Source, AddressPrefix, NextHopType, NextHopIpAddress |
-        Export-csv  $csvFileName -NoTypeInformation
-        makeLogFile -logType "log.runtime.general" -fileName "runtime.log" -logMsg ("Making RouteTable ended")
+    ## Grouping File Path
+    ### 2019-08-23 여기까지 완성
+    [Array]$realPathList = $null
+    foreach ($gp in $pathGroup) {
+        $zzz = $out | Where-Object {$_.path -eq $gp}
+        foreach ($zz in $zzz) {
+            if ($grp -eq "path") {
+                $realPath = $zz.path + "\" + $csvFileName
+            } elseif($grp -eq "nicName") {
+                $realPath = $zz.path + "\" + $zz.$grp + $csvFileName
+            }
+            $zz | Export-Csv -Path $realPath -Append -NoTypeInformation
+        }
+        $realPathList += $realPath
+    }
+    foreach ($rp in $realPathList) {
+        Set-ItemProperty -Path $rp -Name IsReadOnly -Value $true
+    }
+    makeLogFile -logType "log.runtime.general" -fileName "runtime.log" -logMsg ("Making RouteTable ended")
     # Get-Job | Remove-Job
 
     # 저장한 파일의 Hash값을 따로 보관함
@@ -107,27 +129,45 @@ try {
     # output : $hash
     # Type : Object[]
     makeLogFile -logType "log.runtime.general" -fileName "runtime.log" -logMsg ("Recording Hash Value")
-    $hash = Get-FileHash $csvFileName
-    $hash | Add-Member -MemberType NoteProperty -Name "date" -Value $hashFileDate
-    $hash | Export-Csv $hashFileName -NoTypeInformation -Append -Encoding UTF8
-
+    foreach ($rp in $realPathList) {
+        $hash = Get-FileHash $rp
+        $hash.Hash
+        $hash | Add-Member -MemberType NoteProperty -Name "date" -Value $hashFileDate
+        $hash | Export-Csv $hashFileName -NoTypeInformation -Append -Encoding UTF8
+    }
+    Set-ItemProperty -Path $hashFileName -Name IsReadOnly -Value $true
+    
     # 다른점 찾기
-    # Hash 파일 기록 csv 파일에 2개 이상 데이터 row가 있을 경우 작동
+    # 전날 해쉬와 오늘 해쉬를 비교함
     # 가장 최신의 Hash 값과 그 이전의 Hash값을 비교함, Hash값이 다를 경우 변동이 있다고 판단
     # logs\diff 에 기록을 남기며, diff에 csv 비교를 시작한 시간의 이름으로 결과 파일을 남김
     # @@
     # input : $thisTime, $lastTime
     # Type : String
     # output : none
-    $csvFileTest = Import-Csv -Path $hashFileName
-    makeLogFile -logType "log.runtime.general" -fileName "runtime.log" -logMsg ("Compare")
-    if($csvFileTest.Path.Count -ge 2) {
-        $thisTime = $csvFileTest.Path[$csvFileTest.Count - 1]
-        $beforeTime = $csvFileTest.Path[$csvFileTest.Count - 2]
-        compareDiff -thisTime $thisTime -lastTime $beforeTime
-    } else {
-        makeLogFile -logType "log.runtime.general" -fileName "runtime.log" -logMsg ("No Compar data")
+    $hashFiles = Get-ChildItem -Path "C:\powershell\Azure-Effective-Routes-Tracker\EffectiveRouteTable\outputs\hash\" | Sort-Object -Property LastWriteTime -Descending
+    if(!$hashFiles) {
+        return
     }
+    $todayHash = $hashFiles[0].FullName
+    $yesterdayHash = $hashFiles[1].FullName
+    $todayHashCSV = Import-Csv -Path $todayHash
+    $yesterdayHashCSV = Import-Csv -Path $yesterdayHash
+    $diff = Compare-Object -ReferenceObject $yesterdayHashCSV.Hash -DifferenceObject $todayHashCSV.Hash
+
+    [Array]$diffObj = $null
+    foreach ($diffarr in $diff.InputObject) {
+        $diffObj += $yesterdayHashCSV | Where-Object {$_.Hash -eq $diffarr}
+        $diffObj += $todayHashCSV | Where-Object {$_.Hash -eq $diffarr}
+    }
+    
+    foreach ($diff in $diffObj) {
+        $Matches = $null
+        $diff.Path -match "C:\\powershell\\Azure-Effective-Routes-Tracker\\(?<pathHeader>.+)\\routeTable\\(?<footer1>.+)\\(?<footer2>.+)\\"
+        $dp = $env:effectiveRoute + $Matches.pathHeader + "\diff\" + $Matches.footer1 + "\" + $Matches.footer2 + "\"
+        Copy-Item -Path $diff.Path -Destination $dp
+    }
+
 } catch {
     makeLogFile -logType "log.runtime.error" -fileName "runtime_error.log" -logMsg $_.Exception.Message
 }

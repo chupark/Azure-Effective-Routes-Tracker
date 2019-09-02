@@ -90,7 +90,7 @@ try {
     if($csvFileTest.Path.Count -ge 2) {
         $thisTime = $csvFileTest.Path[$csvFileTest.Count - 1]
         $beforeTime = $csvFileTest.Path[$csvFileTest.Count - 2]
-        compareDiff -thisTime $thisTime -lastTime $beforeTime
+        compareDiff_main -thisTime $thisTime -lastTime $beforeTime
     } else {
         makeLogFile -logType "log.runtime.general" -fileName "runtime.log" -logMsg ("No Compar data")
     }

@@ -1,6 +1,6 @@
 {
     "log" : {
-        "path" : "C:\\powershell\\EffectiveRouteTable\\src\\statics\\logConfig.json"
+        "path" : "C:\\powershell\\Azure-Effective-Routes-Tracker\\EffectiveRouteTable\\src\\statics\\logConfig.json"
     },
     "batch" : {
         "value" : false,

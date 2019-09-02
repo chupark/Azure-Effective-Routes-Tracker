@@ -1,0 +1,12 @@
+{
+    "log" : {
+        "error" : "C:\\powershell\\Azure-Effective-Routes-Tracker\\EffectiveRouteTable\\outputs\\logs\\error\\",
+        "runtime" : {
+            "general" : "C:\\powershell\\Azure-Effective-Routes-Tracker\\EffectiveRouteTable\\outputs\\logs\\runtime\\",
+            "error" : "C:\\powershell\\Azure-Effective-Routes-Tracker\\EffectiveRouteTable\\outputs\\logs\\error\\runtime\\"
+        }
+    },
+    "customLog" : {
+        "differentLog" : "C:\\powershell\\Azure-Effective-Routes-Tracker\\EffectiveRouteTable\\outputs\\logs\\diff\\"
+    }
+}
