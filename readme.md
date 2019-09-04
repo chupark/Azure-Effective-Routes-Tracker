@@ -1,5 +1,5 @@
 ### 작성 중
-### 사용에 궁금한점이 있다면 qkrcldn12@gmail.com 으로 메일 주세용
+ 사용에 궁금한점이 있다면 qkrcldn12@gmail.com 으로 메일 주세용
 
 # Azure NIC의 유효경로 변경사항 추적
 
