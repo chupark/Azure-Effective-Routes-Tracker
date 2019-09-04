@@ -37,6 +37,9 @@ Linux에 PowerShell Core를 설치했을 경우 Cronjob을 추가 합니다.
 
 --- 나중에 더 추가 
 ## Output 구성
-EffectiveRouteTable\outputs\routeTable : 하위에 Subnet별 디렉토리가 만들어지고 Effective Route 테이블이 csv 파일로 만들어집니다. <br>
-EffectiveRouteTable\outputs\hash : 하위에 각 파일별 hash값이 저장됩니다. <br>
-EffectiveRouteTable\outputs\diff : 하위에 Subnet별 디렉토리가 만들어지고 Effective Route 값이 다르다면 해당 디렉토리 하위에 파일이 생성됩니다.
+- EffectiveRouteTable\outputs\routeTable
+-- 하위에 Subnet별 디렉토리가 만들어지고 Effective Route 테이블이 csv 파일로 만들어집니다.
+- EffectiveRouteTable\outputs\hash
+-- 하위에 각 파일별 hash값이 저장됩니다.
+- EffectiveRouteTable\outputs\diff
+-- 하위에 Subnet별 디렉토리가 만들어지고 Effective Route 값이 다르다면 해당 디렉토리 하위에 파일이 생성됩니다.
